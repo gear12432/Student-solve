@@ -1,0 +1,6 @@
+{
+  "name": "AI Mathematics Tutor",
+  "description": "A comprehensive AI-powered mathematics learning platform featuring formulas, solvers, calculators, practice exercises, and an interactive AI tutor chat.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,128 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Stores user profiles, subscriptions, streak metrics, and achievements.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The Firebase Authentication unique identifier."
+        },
+        "email": {
+          "type": "string",
+          "description": "User registration email address."
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the user."
+        },
+        "role": {
+          "type": "string",
+          "description": "User role, default to user. Admins can access dashboard features.",
+          "enum": ["user", "admin"]
+        },
+        "plan": {
+          "type": "string",
+          "description": "Current subscription tier.",
+          "enum": ["free", "pro"]
+        },
+        "streakCount": {
+          "type": "integer",
+          "description": "Number of consecutive days of mathematics study."
+        },
+        "lastActiveAt": {
+          "type": "string",
+          "description": "Timestamp indicating the user's last log-in or activity action."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Record creation timestamp."
+        }
+      },
+      "required": ["uid", "email", "role", "plan", "streakCount", "createdAt"]
+    },
+    "Bookmark": {
+      "title": "Bookmark",
+      "description": "User bookmarks for algebraic/geometric formulas, problem templates, and quiz items.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Bookmark ID"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the owner user's document ID."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the saved item."
+        },
+        "category": {
+          "type": "string",
+          "description": "Type of item (e.g., algebra, geometry, quiz, calculator_template)."
+        },
+        "itemKey": {
+          "type": "string",
+          "description": "Unique key representing the math resource item within the application."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Bookmark creation time."
+        }
+      },
+      "required": ["id", "userId", "title", "category", "itemKey", "createdAt"]
+    },
+    "Progress": {
+      "title": "Progress",
+      "description": "Performance and completion trackers for practice quizzes, drills, and formula drills.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Progress record ID."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the owner user's ID."
+        },
+        "category": {
+          "type": "string",
+          "description": "Subject category (e.g., multiplication, geometry, algebraic_identities)."
+        },
+        "activityName": {
+          "type": "string",
+          "description": "Description of activity (e.g., Multiplication table 7 drill)."
+        },
+        "score": {
+          "type": "integer",
+          "description": "Correct answers scored, if a test."
+        },
+        "total": {
+          "type": "integer",
+          "description": "Total items tested, if applicable."
+        },
+        "completedAt": {
+          "type": "string",
+          "description": "Completion timestamp."
+        }
+      },
+      "required": ["id", "userId", "category", "activityName", "completedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Contains overall profile, plan status, and daily activity tracking metadata."
+    },
+    "users/{userId}/bookmarks/{bookmarkId}": {
+      "schema": "Bookmark",
+      "description": "List of user-saved educational formulas and math references."
+    },
+    "users/{userId}/progress/{progressId}": {
+      "schema": "Progress",
+      "description": "Tracks completed mathematics topics and score summaries."
+    }
+  }
+}

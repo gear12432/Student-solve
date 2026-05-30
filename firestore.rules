@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net default catch-all (First Match Block)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable, hardened global primitives and helper guards
+    function isValidId(id) {
+       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity validation blueprints (Type Safety, Key Verification & Strict Bounds)
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'plan', 'streakCount', 'createdAt'])
+        && data.keys().size() == 6
+        && data.uid is string && data.uid.size() <= 128
+        && data.email is string && data.email.size() <= 256
+        && data.role is string && (data.role == 'user' || data.role == 'admin')
+        && data.plan is string && (data.plan == 'free' || data.plan == 'pro')
+        && data.streakCount is int
+        && data.createdAt == request.time;
+    }
+
+    function isValidBookmark(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'category', 'itemKey', 'createdAt'])
+        && data.keys().size() == 6
+        && data.id is string && data.id.size() <= 128
+        && data.userId == userId
+        && data.title is string && data.title.size() <= 256
+        && data.category is string && data.category.size() <= 128
+        && data.itemKey is string && data.itemKey.size() <= 128
+        && data.createdAt == request.time;
+    }
+
+    function isValidProgress(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'category', 'activityName', 'completedAt'])
+        && (data.keys().size() == 5 || (data.keys().size() == 7 && data.keys().hasAll(['score', 'total'])))
+        && data.id is string && data.id.size() <= 128
+        && data.userId == userId
+        && data.category is string && data.category.size() <= 128
+        && data.activityName is string && data.activityName.size() <= 256
+        && data.completedAt == request.time;
+    }
+
+    // Collection matches
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      // For create: Must be verified, own UID, start as standard 'user' and 'free' plan
+      allow create: if isVerifiedUser() && isOwner(userId) && isValidUser(incoming())
+                       && incoming().role == 'user' && incoming().plan == 'free';
+      // For update: Must be verified, own UID, role/plan/createdAt are immutable, only can edit name/streakCount/lastActiveAt
+      allow update: if isVerifiedUser() && isOwner(userId) && isValidUser(incoming())
+                       && incoming().role == existing().role
+                       && incoming().plan == existing().plan
+                       && incoming().createdAt == existing().createdAt
+                       && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'streakCount', 'lastActiveAt']);
+      allow delete: if false; 
+    }
+
+    match /users/{userId}/bookmarks/{bookmarkId} {
+      allow read, list: if isOwner(userId);
+      allow create: if isVerifiedUser() && isOwner(userId) && isValidId(bookmarkId) && isValidBookmark(incoming(), userId);
+      allow delete: if isVerifiedUser() && isOwner(userId);
+    }
+
+    match /users/{userId}/progress/{progressId} {
+      allow read, list: if isOwner(userId);
+      allow create: if isVerifiedUser() && isOwner(userId) && isValidId(progressId) && isValidProgress(incoming(), userId);
+      allow update, delete: if false; // Progress history is immutable
+    }
+  }
+}
